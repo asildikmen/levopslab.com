@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8080:80/tcp"
+    environment:
+      TZ: 'Europe/Istanbul'
+      WEBPASSWORD: 'mmd110913'
+    volumes:
+      - '/home/lab/pi/etc/:/etc/pihole'
+      - '/home/lab/pi/dnsmasq/:/etc/dnsmasq.d'
+    dns: 8.8.8.8
+    restart: unless-stopped
+
+    nginx:
+     container_name: nginx
+     build:
+       context: .
+       dockerfile: dockerfile
+     ports:
+       - "80:80/tcp"
+       - "443:443/tcp"
+#    devam edicek
+
+    

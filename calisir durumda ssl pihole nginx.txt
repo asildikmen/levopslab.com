@@ -1,0 +1,83 @@
+    1  sudo apt-get update
+    2  sudo apt-get install     ca-certificates     curl     gnupg     lsb-release
+    3  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    4  echo   "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    5  sudo apt-get update
+    6  sudo apt-get install docker.io
+    7  sudo apt-get install docker-compose
+    8  sudo systemctl stop systemd-resolved
+    9  sudo systemctl disable systemd-resolved
+   10  sudo nano /etc/resolv.conf
+   ##
+   
+   [changed nameserver to 8.8.8.8]
+   
+   ##
+   11  mkdir /home/pi
+   12  cd /home/pi
+   13  mkdir etc dnsmasq.d
+   15  nano docker-compose.yml
+   
+   ###########################################
+   
+version: "3"
+
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "8080:80/tcp"
+    environment:
+      TZ: 'Europe/Istanbul'
+      WEBPASSWORD: 'mmd110913'
+    volumes:
+      - '/home/lab/pi/etc/:/etc/pihole'
+      - '/home/lab/pi/dnsmasq/:/etc/dnsmasq.d'
+    dns: 8.8.8.8
+    restart: unless-stopped
+   
+   #### ########################################
+   
+   16  docker-compose up -d
+   18  ufw enable
+   19  ufw allow ssh
+   20  ufw allow http
+   21  ufw allow https
+?  23  ufw allow 8080
+   27  sudo apt install nginx
+   28  sudo nano /etc/nginx/sites-available/default 
+   
+   #############################################
+   
+   server {
+
+        root /var/www/html;
+
+        index index.html index.htm index.nginx-debian.html;
+        server_name levopslab.com www.levopslab.com;
+
+        location / {
+        proxy_pass http://localhost:8080; #whatever port your app runs on
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        }
+        
+ }     
+    
+    ##############################################
+    
+   29  sudo nginx -t
+   30  sudo service nginx restart
+   31  sudo add-apt-repository ppa:certbot/certbot
+   32  sudo apt update
+   34  sudo apt-get install python3-certbot-nginx
+   35  sudo certbot --nginx -d levopslab.com -d www.levopslab.com
+   36  certbot renew --dry-run
+   
