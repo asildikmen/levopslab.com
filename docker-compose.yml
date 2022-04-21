@@ -1,30 +1,36 @@
 version: "3"
 
+volumes:
+  pihole-etc:
+  pihole-dnsmasq.d:
+  nginx-conf:
+  nginx-cert:
+
 services:
   pihole:
     container_name: pihole
-    image: pihole/pihole:latest
+    image: pihole/pihole:2022.04.3
     ports:
       - "53:53/tcp"
       - "53:53/udp"
       - "8080:80/tcp"
-    environment:
-      TZ: 'Europe/Istanbul'
-      WEBPASSWORD: 'mmd110913'
+    env_file:
+      - /levopslab/gitignore/pihole.env
     volumes:
-      - '/home/lab/pi/etc/:/etc/pihole'
-      - '/home/lab/pi/dnsmasq/:/etc/dnsmasq.d'
+      - '/levopslab/pihole-etc/:/etc/pihole'
+      - '/levopslab/pihole-dnsmasq.d/:/etc/dnsmasq.d'
     dns: 8.8.8.8
     restart: unless-stopped
 
-    nginx:
-     container_name: nginx
-     build:
-       context: .
-       dockerfile: dockerfile
-     ports:
-       - "80:80/tcp"
-       - "443:443/tcp"
-#    devam edicek
-
-    
+  nginx:
+    container_name: nginx
+    build: ./
+    depends_on:
+      - pihole
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+    volumes:      
+      - '/levopslab/nginx-conf/:/etc/nginx/conf.d'
+      - '/levopslab/nginx-cert/:/etc/nginx/certs'
+    restart: unless-stopped       
