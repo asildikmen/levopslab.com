@@ -15,7 +15,7 @@ services:
       - "53:53/udp"
       - "8080:80/tcp"
     env_file:
-      - /levopslab/gitignore/pihole.env
+      - /levopslab/pihole.env
     volumes:
       - '/levopslab/pihole-etc/:/etc/pihole'
       - '/levopslab/pihole-dnsmasq.d/:/etc/dnsmasq.d'
