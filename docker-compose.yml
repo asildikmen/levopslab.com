@@ -1,36 +1,51 @@
 version: "3"
 
-volumes:
-  pihole-etc:
-  pihole-dnsmasq.d:
-  nginx-conf:
-  nginx-cert:
-
 services:
   pihole:
     container_name: pihole
+    hostname: pihole
     image: pihole/pihole:2022.04.3
     ports:
       - "53:53/tcp"
       - "53:53/udp"
       - "8080:80/tcp"
     env_file:
-      - /levopslab/pihole.env
+      - ./pihole.env
     volumes:
-      - '/levopslab/pihole-etc/:/etc/pihole'
-      - '/levopslab/pihole-dnsmasq.d/:/etc/dnsmasq.d'
-    dns: 8.8.8.8
+      - ./pihole-etc/:/etc/pihole
+      - ./pihole-dnsmasq.d/:/etc/dnsmasq.d
+    dns: '8.8.8.8'
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   nginx:
     container_name: nginx
-    build: ./
+    hostname: nginx
+    image: nginx:1.21.6-alpine
     depends_on:
-      - pihole
+      pihole:
+        condition: service_healthy
     ports:
       - "80:80/tcp"
       - "443:443/tcp"
     volumes:      
-      - '/levopslab/nginx-conf/:/etc/nginx/conf.d'
-      - '/levopslab/nginx-cert/:/etc/nginx/certs'
-    restart: unless-stopped       
+      - ./nginx-conf:/etc/nginx/conf.d/:ro
+      - ./certbot/conf:/etc/nginx/ssl/:ro
+      - ./certbot/www:/var/www/certbot/:ro   
+    restart: unless-stopped
+
+  certbot:
+    container_name: certbot
+    depends_on:
+      - nginx
+    image: certbot/certbot:nightly
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt/:rw
+      - ./certbot/www:/var/www/certbot/:rw
+    command: certbot certonly --webroot -w /var/www/certbot --force-renewal \
+             --email faikasil.dikmen@gmail.com -d *.levopslab.com --agree-tos
