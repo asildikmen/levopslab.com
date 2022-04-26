@@ -1,6 +1,14 @@
 version: "3"
 
 services:
+  certbot:
+    container_name: certbot
+    build: .
+    volumes:
+      - ./secrets/digitalocean.ini:/.secrets/certbot/digitalocean.ini:ro
+      - ./letsencrypt:/etc/letsencrypt:rw
+    command: certbot certonly --non-interactive --dns-digitalocean --dns-digitalocean-credentials /.secrets/certbot/digitalocean.ini -d levopslab.com -d '*.levopslab.com' --email faikasil.dikmen@gmail.com --agree-tos
+
   pihole:
     container_name: pihole
     hostname: pihole
@@ -8,20 +16,22 @@ services:
     ports:
       - "53:53/tcp"
       - "53:53/udp"
-      - "8080:80/tcp"
+      - "80/tcp"
     env_file:
-      - ./pihole.env
+      - ./secrets/pihole.env
     volumes:
-      - ./pihole-etc/:/etc/pihole
-      - ./pihole-dnsmasq.d/:/etc/dnsmasq.d
-    dns: '8.8.8.8'
+      - ./pihole-etc:/etc/pihole
+      - ./pihole-dnsmasq.d:/etc/dnsmasq.d
+    dns:
+      - '8.8.8.8'
+      - '1.1.1.1'
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
+      test: ["CMD", "curl -sL", "-f", "http://localhost"]
       interval: 10s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 30s
 
   nginx:
     container_name: nginx
@@ -30,22 +40,18 @@ services:
     depends_on:
       pihole:
         condition: service_healthy
+      certbot:
+        condition:           
     ports:
       - "80:80/tcp"
       - "443:443/tcp"
     volumes:      
-      - ./nginx-conf:/etc/nginx/conf.d/:ro
-      - ./certbot/conf:/etc/nginx/ssl/:ro
-      - ./certbot/www:/var/www/certbot/:ro   
+      - ./nginx-conf:/etc/nginx/conf.d:ro
+      - ./letsencrypt/live/levopslab.com:/etc/nginx/ssl:ro
     restart: unless-stopped
-
-  certbot:
-    container_name: certbot
-    depends_on:
-      - nginx
-    image: certbot/certbot:nightly
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt/:rw
-      - ./certbot/www:/var/www/certbot/:rw
-    command: certbot certonly --webroot -w /var/www/certbot --force-renewal \
-             --email faikasil.dikmen@gmail.com -d *.levopslab.com --agree-tos
+    healthcheck:
+      test: ["CMD", "curl -sL", "-f", "http://localhost"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
