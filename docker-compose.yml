@@ -3,7 +3,7 @@ version: "3"
 services:
   certbot:
     container_name: certbot
-    build: .
+    image: certbot/dns-digitalocean:nightly
     volumes:
       - ./secrets/digitalocean.ini:/.secrets/certbot/digitalocean.ini:ro
       - ./letsencrypt:/etc/letsencrypt:rw
@@ -41,7 +41,7 @@ services:
       pihole:
         condition: service_healthy
       certbot:
-        condition:           
+        condition: service_completed_successfully          
     ports:
       - "80:80/tcp"
       - "443:443/tcp"
