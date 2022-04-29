@@ -1,0 +1,57 @@
+version: "3"
+
+services:
+  certbot:
+    container_name: certbot
+    image: certbot/dns-digitalocean:nightly
+    volumes:
+      - ./secrets/digitalocean.ini:/.secrets/certbot/digitalocean.ini:ro
+      - ./letsencrypt:/etc/letsencrypt:rw
+    command: certbot certonly --non-interactive --dns-digitalocean --dns-digitalocean-credentials /.secrets/certbot/digitalocean.ini -d levopslab.com -d '*.levopslab.com' --email faikasil.dikmen@gmail.com --agree-tos
+
+  pihole:
+    container_name: pihole
+    hostname: pihole
+    image: pihole/pihole:2022.04.3
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "80/tcp"
+    env_file:
+      - ./secrets/pihole.env
+    volumes:
+      - ./pihole-etc:/etc/pihole
+      - ./pihole-dnsmasq.d:/etc/dnsmasq.d
+    dns:
+      - '8.8.8.8'
+      - '1.1.1.1'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl -sL", "-f", "http://localhost"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  nginx:
+    container_name: nginx
+    hostname: nginx
+    image: nginx:1.21.6-alpine
+    depends_on:
+      pihole:
+        condition: service_healthy
+      certbot:
+        condition: service_completed_successfully          
+    ports:
+      - "80:80/tcp"
+      - "443:443/tcp"
+    volumes:      
+      - ./nginx-conf:/etc/nginx/conf.d:ro
+      - ./letsencrypt/live/levopslab.com:/etc/nginx/ssl:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl -sL", "-f", "http://localhost"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
