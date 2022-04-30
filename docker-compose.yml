@@ -7,7 +7,7 @@ services:
     volumes:
       - ./secrets/digitalocean.ini:/.secrets/certbot/digitalocean.ini:ro
       - ./letsencrypt:/etc/letsencrypt:rw
-    command: certbot certonly --non-interactive --dns-digitalocean --dns-digitalocean-credentials /.secrets/certbot/digitalocean.ini -d levopslab.com -d '*.levopslab.com' --email faikasil.dikmen@gmail.com --agree-tos
+    command: certbot certonly --non-interactive --dns-digitalocean --dns-digitalocean-credentials /.secrets/certbot/digitalocean.ini -d yourdomain.com -d '*.yourdomain.com' --email yourmail@mail.com --agree-tos
 
   pihole:
     container_name: pihole
