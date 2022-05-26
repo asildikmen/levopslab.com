@@ -2,4 +2,6 @@
 *.pem
 *.env
 *.ini
-!.example
+!secrets/
+secrets/*
+!secrets/.example
